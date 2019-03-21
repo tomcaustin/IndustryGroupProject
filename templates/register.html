@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Please register</h1>
+<br>
+<form action="" method="post">
+  <input type="text" placeholder="First Name" name="first_name" value="{{request.form.first_name }}">
+  <br>
+  <input type="text" placeholder="Last Name" name="last_name" value="{{request.form.last_name }}">
+  <br>
+  <input type="text" placeholder="Email" name="email" value="{{request.form.email }}">
+  <br>
+  <input type="password" placeholder="PassWord" name="password" value="{{request.form.password }}">
+  <input class="btn btn-default" type="submit" value="Register">
+</form>
+
+{% endblock %}
+</html>
