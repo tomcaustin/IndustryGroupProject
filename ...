@@ -1,0 +1,182 @@
+#------------------------------------------------------------------------------------
+#--------------------------------- public.industry2 ---------------------------------
+#------------------------------------------------------------------------------------
+-- Table: public.industry2
+
+-- DROP TABLE public.industry2;
+
+CREATE TABLE public.industry2
+(
+    rankdate date NOT NULL,
+    rankthisweek integer NOT NULL,
+    rank3weeksago integer NOT NULL,
+    rank6weeksago integer NOT NULL,
+    indgrp character varying(100) COLLATE pg_catalog."default" NOT NULL
+)
+WITH (
+    OIDS = FALSE
+)
+TABLESPACE pg_default;
+
+ALTER TABLE public.industry2
+    OWNER to postgres;
+	
+#------------------------------------------------------------------------------------
+#------------------------------- public.ibdinternalmap ------------------------------
+#------------------------------------------------------------------------------------
+-- Table: public.ibdinternalmap
+
+-- DROP TABLE public.ibdinternalmap;
+
+CREATE TABLE public.ibdinternalmap
+(
+    indgrpdatatables character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    indgrpstockresearch character varying(100) COLLATE pg_catalog."default" NOT NULL
+)
+WITH (
+    OIDS = FALSE
+)
+TABLESPACE pg_default;
+
+ALTER TABLE public.ibdinternalmap
+    OWNER to postgres;
+	
+#------------------------------------------------------------------------------------
+#------------------------------- public.cboeibdresmap -------------------------------
+#------------------------------------------------------------------------------------
+-- Table: public.cboeibdresmap
+
+-- DROP TABLE public.cboeibdresmap;
+
+CREATE TABLE public.cboeibdresmap
+(
+    ticker character varying(10) COLLATE pg_catalog."default" NOT NULL,
+    ibddatatables_indgrprankings character varying(100) COLLATE pg_catalog."default" NOT NULL,
+    ibdresearch_stockcheckupindgrp character varying(100) COLLATE pg_catalog."default" NOT NULL
+)
+WITH (
+    OIDS = FALSE
+)
+TABLESPACE pg_default;
+
+ALTER TABLE public.cboeibdresmap
+    OWNER to postgres;
+
+-- Table: public.users
+
+-- DROP TABLE public.users;
+CREATE SEQUENCE user_id_seq;
+CREATE TABLE public.users
+(
+    id integer NOT NULL DEFAULT nextval('user_id_seq'::regclass),
+    email character varying(255) COLLATE pg_catalog."default",
+    first_name character varying(255) COLLATE pg_catalog."default",
+    last_name character varying(255) COLLATE pg_catalog."default",
+    CONSTRAINT users_pkey PRIMARY KEY (id)
+)
+WITH (
+    OIDS = FALSE
+)
+TABLESPACE pg_default;
+
+ALTER TABLE public.users
+    OWNER to postgres;
+ALTER SEQUENCE user_id_seq OWNED BY users.id;
+
+#------------------------------------------------------------------------------------
+#------------------------------- create user admin ----------------------------------
+#------------------------------------------------------------------------------------
+CREATE USER admin WITH
+	LOGIN
+	SUPERUSER
+	CREATEDB
+	CREATEROLE
+	INHERIT
+	NOREPLICATION
+	CONNECTION LIMIT -1
+	PASSWORD 'xxxxxx';
+COMMENT ON ROLE admin IS 'logon for flash-intro project';
+
+-- FUNCTION: public.get_indgrp_vel(character varying)
+
+-- DROP FUNCTION public.get_indgrp_vel(character varying);
+
+#------------------------------------------------------------------------------------
+#------------------------------- public.get_indgrp_vel ------------------------------
+#------------------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_indgrp_vel(
+	trgt_indgrp character varying)
+    RETURNS TABLE(date date, thisweek integer, _3weeksago integer, _6weeksago integer, industry_group character varying) 
+    LANGUAGE 'plpgsql'
+
+    COST 100
+    VOLATILE 
+    ROWS 1000
+AS $BODY$
+BEGIN
+ RETURN QUERY SELECT
+ rankdate,
+ rankthisweek,
+ rank3weeksago,
+ rank6weeksago,
+ indgrp
+ FROM
+ industry2
+ WHERE
+ indgrp = trgt_indgrp ORDER BY rankdate DESC;
+END; $BODY$;
+
+ALTER FUNCTION public.get_indgrp_vel(character varying)
+    OWNER TO postgres;
+
+
+#------------------------------------------------------------------------------------
+#------------------------------- miscellaneous SQL Stmts ----------------------------
+#------------------------------------------------------------------------------------
+--SELECT * FROM industry2 where rankdate > '2019-02-14';
+--select * from industry2 ORDER BY rankdate DESC,rankthisweek ASC;
+--COPY industry2 TO 'C:\xfer\MasterMindProject\QTR_1_2019\IndGrpRankings\industry2_2019-02-22.csv' WITH (FORMAT CSV, HEADER);
+--SELECT * FROM industry2 WHERE indgrp = 'Coml Svcs-Advrtsng';
+CREATE OR REPLACE FUNCTION get_indgrp_vel (trgt_indgrp VARCHAR) 
+ RETURNS TABLE (
+ date date,
+ thisweek integer,
+ _3weeksago integer,
+ _6weeksago integer,
+ industry_group VARCHAR
+) 
+AS $$
+BEGIN
+ RETURN QUERY SELECT
+ rankdate,
+ rankthisweek,
+ rank3weeksago,
+ rank6weeksago,
+ indgrp
+ FROM
+ industry2
+ WHERE
+ indgrp = trgt_indgrp;
+END; $$ 
+ 
+LANGUAGE 'plpgsql';
+
+create backups....
+COPY industry2 TO 'C:\xfer\MasterMindProject\QTR_1_2019\IndGrpRankings\DBbackups\industry2_2019-02-21.csv' WITH (FORMAT CSV, HEADER);
+COPY ibdinternalmap TO 'C:\xfer\MasterMindProject\QTR_1_2019\IndGrpRankings\DBbackups\ibdinternalmap_2019-02-21.csv' WITH (FORMAT CSV, HEADER);
+COPY cboeibdresmap TO 'C:\xfer\MasterMindProject\QTR_1_2019\IndGrpRankings\DBbackups\ibdinternalresmap_2019-03-03.csv' WITH (FORMAT CSV, HEADER);
+COPY users TO 'C:\xfer\MasterMindProject\QTR_1_2019\IndGrpRankings\DBbackups\users_2019-03-04.csv' WITH (FORMAT CSV, HEADER);
+
+SELECT * FROM ibdinternalmap;
+COPY cboeibdresmap(ticker, ibddatatables_indgrprankings, ibdresearch_stockcheckupindgrp)
+	FROM 'C:\xfer\MasterMindProject\QTR_1_2019\IndGrpRankings\DBbackups\cboeibdresmap_2019-03-04.csv' WITH (FORMAT CSV, HEADER);
+SELECT * FROM cboeibdresmap;
+COPY ibdinternalmap(indgrpdatatables, indgrpstockresearch)
+	FROM 'C:\xfer\MasterMindProject\QTR_1_2019\IndGrpRankings\DBbackups\ibdinternalmap_2019-03-04.csv' WITH (FORMAT CSV, NULL '\N', HEADER);
+SELECT * FROM ibdinternalmap;
+COPY industry2(rankdate, rankthisweek,rank3weeksago, rank6weeksago, indgrp)
+	FROM 'C:\xfer\MasterMindProject\QTR_1_2019\IndGrpRankings\DBbackups\industry2_2019-03-04.csv' WITH (FORMAT CSV, HEADER);
+COPY users(id, email, first_name, last_name) FROM 'C:\xfer\MasterMindProject\QTR_1_2019\IndGrpRankings\DBbackups\users_2019-03-04.csv' WITH (FORMAT CSV, HEADER);	
+SELECT * FROM industry2;
+SELECT rankdate, rankthisweek, rank3weeksago, rank6weeksago from industry2 where indgrp = 'Retail-Mail Order&Di' ORDER BY rankthisweek ASC
+SELECT * FROM industry2 WHERE indgrp = 'Rtail Whlsle Offc Sup' AND rankdate = '2019-03-05';
